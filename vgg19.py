@@ -3,7 +3,7 @@ import tensorflow as tf
 import numpy as np
 
 class Vgg19:
-    def __init__(self,args):
+    def __init__(self,args, decay_step = 500):
         self.args = args
         self.variables_vgg19()
         self.X = tf.placeholder(tf.float32, shape = [self.args.num_gpus, self.args.batch_size, self.args.boxsize, self.args.boxsize, 1])
@@ -11,6 +11,8 @@ class Vgg19:
         if self.args.is_training:
             self.lr = tf.constant(self.args.learning_rate, tf.float32)
         self.global_step = tf.Variable(0, name='global_step',trainable=False)
+        # self.decay_step = tf.placeholder(tf.float32, shape = [1])
+        self.decay_step = decay_step
         self._reuse_weights = True
         self.build_model()
         if self.args.is_training:
@@ -179,7 +181,7 @@ class Vgg19:
                 # tf.summary.scalar((self._name+"/" if self._name else "") + "accuracy", self.acc)
 
     def build_train_op(self, args):
-        self.lr = tf.maximum(1e-8,tf.train.exponential_decay(self.lr, self.global_step, self.args.decay_step, self.args.decay_rate, staircase=True))
+        self.lr = tf.maximum(1e-8,tf.train.exponential_decay(self.lr, self.global_step, self.decay_step, self.args.decay_rate, staircase=True))
 
         if self.args.optimizer == "mom":
             opt = tf.train.MomentumOptimizer(self.lr, self.momentum)
@@ -236,8 +238,9 @@ class Vgg19:
             apply_grad_op = opt.apply_gradients(grads_and_vars, global_step=self.global_step)
 
             # Batch normalization moving average update
-            update_ops = tf.get_collection(tf.GraphKeys.UPDATE_OPS)
-            self.train_op = tf.group(*(update_ops+[apply_grad_op]))
+            # update_ops = tf.get_collection(tf.GraphKeys.UPDATE_OPS)
+            # self.train_op = tf.group(*(update_ops+[apply_grad_op]))
+            self.train_op = apply_grad_op
 
     def _average_gradients(self, tower_grads):
         """Calculate the average gradient for each shared variable across all towers.

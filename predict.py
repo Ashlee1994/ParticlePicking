@@ -11,6 +11,7 @@ def predict():
     model = Vgg19(args)
     checkpoint_dir = args.model_save_path
     os.environ["CUDA_VISIBLE_DEVICES"] = args.gpu_device
+    total_mic = 0
     with tf.Session() as sess:
         saver = tf.train.Saver(tf.global_variables())
         ckpt = tf.train.get_checkpoint_state(checkpoint_dir)
@@ -35,6 +36,7 @@ def predict():
             output_name = args.result_path + args.name_prefix + str(num).zfill(args.name_length)  + '.box'
             output = open(output_name, 'w')
             test_x,test_index = load_predict(args,mrc_name)
+            total_mic = total_mic + 1
             test_len = len(test_x)
             print("num_of_box is %d" % len(test_x),flush=True)
             test_num_batches = test_len // args.batch_size
@@ -74,7 +76,7 @@ def predict():
     time_end = time.time()
     print("\ntotal %d mrc pictures." % (args.end_mic_num - args.start_mic_num + 1))
     print("predicting done! totally cost: %.5f \n" %(time_end - time_start),flush=True)
-    print("cost of every single mrc file: %.5f \n" %((time_end - time_start)/(args.end_mic_num - args.start_mic_num + 1)),flush=True)
+    print("cost of every single mrc file: %.5f \n" %((time_end - time_start)/total_mic
 
 if __name__ == '__main__':
     predict()

@@ -43,7 +43,12 @@ def train():
 
     # training start
     with tf.Session() as sess:
-        model = Vgg19(args)
+        train_num_batch_gpus = len(train_x)
+        print("num_batch is %d" % train_num_batch_gpus,flush=True)
+        test_num_batch_gpus = len(test_x)
+        decay_step = train_num_batch_gpus * args.lr_decay_epoch
+
+        model = Vgg19(args,decay_step)
         sess.run(tf.global_variables_initializer())
         print("train size is %d " % len(train_x), flush=True)
 
@@ -59,11 +64,6 @@ def train():
                 print('Restore model failed!',flush=True)
             # saver.restore(sess, args.checkpoint)
             # init_step = global_step.eval(session=sess)
- 
-        train_num_batch_gpus = len(train_x)
-        print("num_batch is %d" % train_num_batch_gpus,flush=True)
-        test_num_batch_gpus = len(test_x)
-        decay_step = train_num_batch_gpus * args.lr_decay_epoch
 
         for step in range(args.num_epochs):
             print('\n=============== Epoch %d/%d ==============='% (step + 1,args.num_epochs),flush=True)
@@ -89,11 +89,11 @@ def train():
                 num_examples_per_step = args.batch_size * args.num_gpus
                 examples_per_sec = num_examples_per_step / duration
                 sec_per_batch = float(duration)
-                format_str = ('%s: (Training) step %d, loss=%.4f, acc=%.4f, lr=%f (%.1f examples/sec; %.3f '
+                format_str = ('%s: (Training) step %d, loss=%.6f, acc=%.6f, lr=%f (%.1f examples/sec; %.3f '
                               'sec/batch)')
                 print (format_str % (datetime.now(), step, train_loss, train_acc, lr,
                                      examples_per_sec, sec_per_batch),flush=True)
-                format_str = ('%s: (Training) step %d, loss=%.4f, acc=%.4f, lr=%f (%.1f examples/sec; %.3f '
+                format_str = ('%s: (Training) step %d, loss=%.6f, acc=%.6f, lr=%f (%.1f examples/sec; %.3f '
                               'sec/batch)\n')
                 output.write(format_str % (datetime.now(), step, train_loss, train_acc, lr,
                                      examples_per_sec, sec_per_batch))
@@ -105,10 +105,6 @@ def train():
                 best_train_accuracy = train_acc
 
             plot_train.append(1- train_acc)
-            print("train accuracy: %.6f" % train_acc,flush=True)
-            print("best_train_accuracy: %.6f" % best_train_accuracy,flush=True)
-            output.write("train accuracy: " + str(train_acc) + '\n')
-            output.flush()
 
             # val
             if step % args.val_interval == 0:
@@ -125,9 +121,9 @@ def train():
                 val_loss /= test_num_batch_gpus
                 val_acc /= test_num_batch_gpus
                 plot.append(1- val_acc)
-                format_str = ('%s: (val)      step %d, loss=%.4f, acc=%.4f')
+                format_str = ('%s: (val)      step %d, loss=%.6f, acc=%.6f')
                 print (format_str % (datetime.now(), step, val_loss, val_acc),flush=True)
-                format_str = ('%s: (val)      step %d, loss=%.4f, acc=%.4f\n')
+                format_str = ('%s: (val)      step %d, loss=%.6f, acc=%.6f\n')
                 output.write (format_str % (datetime.now(), step, val_loss, val_acc))
                 output.flush
 
@@ -145,6 +141,11 @@ def train():
                 checkpoint_path = os.path.join(args.model_save_path, 'model.ckpt')
                 saver.save(sess, checkpoint_path, global_step=step)
 
+            print("best_train_accuracy: %.6f,  best_test_accuracy: %.6f" % ( best_train_accuracy,best_test_accuracy) ,flush=True)
+            output.write("best train accuracy: " + str(best_train_accuracy) + '\n')
+            output.write("best test accuracy: " + str(best_test_accuracy) + '\n')
+            output.flush()
+
         time_end = time.time()
         print("\ntraining done! totally cost: %.5f \n" %(time_end - time_start),flush=True)
         output.write("training done! totally cost: " + str(time_end - time_start) + '\n')
@@ -161,7 +162,7 @@ def train():
 
     # draw picture of loss and error
     plt.subplot(211)
-    plt.title('error r:test  g:train')
+    plt.title('error red:test  green:train')
     plt.xlabel("epoch")
     plt.ylabel("error")
     plt.grid(True)

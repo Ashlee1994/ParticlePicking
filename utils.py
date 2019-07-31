@@ -100,7 +100,6 @@ def load_train(args):
     # shuffle positive1 and negative1
     random.shuffle(positive1)
     random.shuffle(negative1)
-
     positive1_particles_num = len(positive1)//args.rotation_n
     negative1_particles_num = len(negative1)//args.rotation_n
 
@@ -113,11 +112,6 @@ def load_train(args):
         args.num_negative = negative1_particles_num
         print("negative1 only have %d particles, num_negative2 is set to %d" % (negative1_particles_num, negative1_particles_num))
 
-    args.num_positive2 = 0
-    args.num_negative2 = 0
-
-    print("positive1 len: " , np.array(positive1).shape)
- 
     train_size = int((args.num_positive + args.num_negative ) * args.rotation_n)
     test_size = int((args.num_p_test + args.num_n_test) * args.rotation_n)
 
